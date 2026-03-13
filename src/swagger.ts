@@ -25,6 +25,35 @@ const options: swaggerJSDoc.Options = {
                 },
             },
             schemas: {
+                ApiResponse: {
+                    type: "object",
+                    properties: {
+                        code: { type: "integer" },
+                        success: { type: "boolean" },
+                        message: { type: "string" },
+                        data: { type: "object", nullable: true },
+                    },
+                },
+                ErrorResponse: {
+                    type: "object",
+                    properties: {
+                        code: { type: "integer" },
+                        success: { type: "boolean", example: false },
+                        message: { type: "string" },
+                        data: { type: "object", nullable: true, example: null },
+                    },
+                },
+                User: {
+                    type: "object",
+                    properties: {
+                        _id: { type: "string" },
+                        name: { type: "string" },
+                        email: { type: "string", format: "email" },
+                        role: { type: "string", enum: ["ADMIN", "USER"] },
+                        createdAt: { type: "string", format: "date-time" },
+                        updatedAt: { type: "string", format: "date-time" },
+                    },
+                },
                 AuthRegister: {
                     type: "object",
                     required: ["name", "email", "password"],
@@ -63,6 +92,21 @@ const options: swaggerJSDoc.Options = {
                         password: { type: "string", minLength: 6 },
                     },
                 },
+                LoginResponseData: {
+                    type: "object",
+                    properties: {
+                        accessToken: { type: "string" },
+                        refreshToken: { type: "string" },
+                        user: { $ref: "#/components/schemas/User" },
+                    },
+                },
+                RefreshResponseData: {
+                    type: "object",
+                    properties: {
+                        accessToken: { type: "string" },
+                        refreshToken: { type: "string" },
+                    },
+                },
                 Job: {
                     type: "object",
                     required: ["jobName", "jobId", "jobProvider", "type", "deadline", "location", "experience", "salary", "jobDescription", "responsibilities", "contactDetails"],
@@ -91,6 +135,21 @@ const options: swaggerJSDoc.Options = {
                             properties: {
                                 email: { type: "string" },
                                 phoneNo: { type: "string" },
+                            },
+                        },
+                    },
+                },
+                JobsPaginationData: {
+                    type: "object",
+                    properties: {
+                        jobs: { type: "array", items: { $ref: "#/components/schemas/Job" } },
+                        pagination: {
+                            type: "object",
+                            properties: {
+                                total: { type: "integer" },
+                                page: { type: "integer" },
+                                limit: { type: "integer" },
+                                pages: { type: "integer" },
                             },
                         },
                     },
@@ -147,6 +206,21 @@ const options: swaggerJSDoc.Options = {
                         },
                     },
                 },
+                ShopsPaginationData: {
+                    type: "object",
+                    properties: {
+                        shops: { type: "array", items: { $ref: "#/components/schemas/Shop" } },
+                        pagination: {
+                            type: "object",
+                            properties: {
+                                total: { type: "integer" },
+                                page: { type: "integer" },
+                                limit: { type: "integer" },
+                                pages: { type: "integer" },
+                            },
+                        },
+                    },
+                },
                 DayTiming: {
                     type: "object",
                     properties: {
@@ -166,7 +240,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/AuthRegister" } } },
                     },
-                    responses: { 201: { description: "User registered successfully" } },
+                    responses: {
+                        201: {
+                            description: "User registered successfully",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/User" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: "Invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/auth/login": {
@@ -177,7 +266,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/AuthLogin" } } },
                     },
-                    responses: { 200: { description: "Login successful" } },
+                    responses: {
+                        200: {
+                            description: "Login successful",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/LoginResponseData" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/auth/refresh": {
@@ -188,7 +292,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/RefreshToken" } } },
                     },
-                    responses: { 200: { description: "Tokens refreshed" } },
+                    responses: {
+                        200: {
+                            description: "Tokens refreshed",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/RefreshResponseData" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: "Invalid or expired refresh token", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/auth/logout": {
@@ -199,7 +318,21 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/RefreshToken" } } },
                     },
-                    responses: { 200: { description: "Logout successful" } },
+                    responses: {
+                        200: {
+                            description: "Logout successful",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { type: "object", nullable: true, example: null } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
                 },
             },
             "/api/auth/forgot-password": {
@@ -210,7 +343,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/ForgotPassword" } } },
                     },
-                    responses: { 200: { description: "Reset email sent" } },
+                    responses: {
+                        200: {
+                            description: "Reset token sent to email",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { type: "object", properties: { resetToken: { type: "string" } } } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/auth/reset-password/{token}": {
@@ -222,7 +370,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/ResetPassword" } } },
                     },
-                    responses: { 200: { description: "Password reset successful" } },
+                    responses: {
+                        200: {
+                            description: "Password reset successful",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { type: "object", nullable: true, example: null } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: "Invalid or expired token", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/jobs": {
@@ -235,7 +398,21 @@ const options: swaggerJSDoc.Options = {
                         { name: "limit", in: "query", schema: { type: "integer", default: 10 }, description: "Number of items per page" },
                         { name: "search", in: "query", schema: { type: "string" }, description: "Search term" },
                     ],
-                    responses: { 200: { description: "List of jobs" } },
+                    responses: {
+                        200: {
+                            description: "List of jobs",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/JobsPaginationData" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
                 },
                 post: {
                     security: [{ accessToken: [] }],
@@ -245,7 +422,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/Job" } } },
                     },
-                    responses: { 201: { description: "Job created" } },
+                    responses: {
+                        201: {
+                            description: "Job created",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Job" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        403: { description: "Forbidden - Admin only", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/jobs/{jobId}": {
@@ -254,7 +446,22 @@ const options: swaggerJSDoc.Options = {
                     tags: ["Jobs"],
                     summary: "Get job by ID",
                     parameters: [{ name: "jobId", in: "path", required: true, schema: { type: "string" } }],
-                    responses: { 200: { description: "Job details" } },
+                    responses: {
+                        200: {
+                            description: "Job details",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Job" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Job not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
                 put: {
                     security: [{ accessToken: [] }],
@@ -265,14 +472,44 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/Job" } } },
                     },
-                    responses: { 200: { description: "Job updated" } },
+                    responses: {
+                        200: {
+                            description: "Job updated",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Job" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Job not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
                 delete: {
                     security: [{ accessToken: [] }],
                     tags: ["Jobs"],
                     summary: "Delete job (Admin only)",
                     parameters: [{ name: "jobId", in: "path", required: true, schema: { type: "string" } }],
-                    responses: { 200: { description: "Job deleted" } },
+                    responses: {
+                        200: {
+                            description: "Job deleted",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { type: "object", nullable: true, example: null } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Job not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/shops": {
@@ -285,7 +522,21 @@ const options: swaggerJSDoc.Options = {
                         { name: "limit", in: "query", schema: { type: "integer", default: 10 }, description: "Number of items per page" },
                         { name: "search", in: "query", schema: { type: "string" }, description: "Search term" },
                     ],
-                    responses: { 200: { description: "List of shops" } },
+                    responses: {
+                        200: {
+                            description: "List of shops",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/ShopsPaginationData" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
                 },
                 post: {
                     security: [{ accessToken: [] }],
@@ -295,7 +546,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/Shop" } } },
                     },
-                    responses: { 201: { description: "Shop created" } },
+                    responses: {
+                        201: {
+                            description: "Shop created",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Shop" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        403: { description: "Forbidden - Admin only", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/shops/{shopId}": {
@@ -304,7 +570,22 @@ const options: swaggerJSDoc.Options = {
                     tags: ["Shops"],
                     summary: "Get shop by ID",
                     parameters: [{ name: "shopId", in: "path", required: true, schema: { type: "string" } }],
-                    responses: { 200: { description: "Shop details" } },
+                    responses: {
+                        200: {
+                            description: "Shop details",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Shop" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Shop not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
                 put: {
                     security: [{ accessToken: [] }],
@@ -315,14 +596,44 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/Shop" } } },
                     },
-                    responses: { 200: { description: "Shop updated" } },
+                    responses: {
+                        200: {
+                            description: "Shop updated",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Shop" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Shop not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
                 delete: {
                     security: [{ accessToken: [] }],
                     tags: ["Shops"],
                     summary: "Delete shop (Admin only)",
                     parameters: [{ name: "shopId", in: "path", required: true, schema: { type: "string" } }],
-                    responses: { 200: { description: "Shop deleted" } },
+                    responses: {
+                        200: {
+                            description: "Shop deleted",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { type: "object", nullable: true, example: null } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Shop not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/shops/{shopId}/offers": {
@@ -335,7 +646,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/Offer" } } },
                     },
-                    responses: { 201: { description: "Offer added" } },
+                    responses: {
+                        201: {
+                            description: "Offer added",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Shop" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Shop not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
             "/api/shops/{shopId}/offers/{offerId}": {
@@ -351,7 +677,22 @@ const options: swaggerJSDoc.Options = {
                         required: true,
                         content: { "application/json": { schema: { $ref: "#/components/schemas/Offer" } } },
                     },
-                    responses: { 200: { description: "Offer updated" } },
+                    responses: {
+                        200: {
+                            description: "Offer updated",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Shop" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Shop or Offer not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
                 delete: {
                     security: [{ accessToken: [] }],
@@ -361,7 +702,22 @@ const options: swaggerJSDoc.Options = {
                         { name: "shopId", in: "path", required: true, schema: { type: "string" } },
                         { name: "offerId", in: "path", required: true, schema: { type: "string" } },
                     ],
-                    responses: { 200: { description: "Offer deleted" } },
+                    responses: {
+                        200: {
+                            description: "Offer deleted",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: "#/components/schemas/ApiResponse" },
+                                            { type: "object", properties: { data: { $ref: "#/components/schemas/Shop" } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: "Shop or Offer not found", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+                    },
                 },
             },
         },

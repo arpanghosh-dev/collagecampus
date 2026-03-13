@@ -22,7 +22,7 @@ transporter.verify((error, success) => {
 });
 
 export const sendResetPasswordEmail = async (email: string, resetToken: string) => {
-    const resetUrl = `${env.APP_URL}/auth/reset-password/${resetToken}`;
+    const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
 
     const mailOptions = {
         from: `"Collage Campus Admin" <${env.EMAIL_USER}>`,
